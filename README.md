@@ -3,4 +3,4 @@ Little C++ library for the Peng-Robinson EOS for evaluation of multicomponent mi
 
 For compilation, see the CMakeLists.txt file.
 
-The main.cpp file contains an example script for CP calculations of two different mixtures.
+The main.cpp file contains example validation scripts of CP calculations.
