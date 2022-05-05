@@ -243,6 +243,15 @@ void PengRobinson::ReadCriticalProperties() {
       this->Zcrit[l] =
           (Pcrit[l] * Vcrit[l]) / (this->gas_constant_universal * Tcrit[l]);
       this->omega[l] = 0.299;
+    } else if (this->species[l] == "C7H16,n-heptane") {
+      this->MW[l] = 100.2019;
+      this->Tcrit[l] = 540;
+      this->Pcrit[l] = 27.4e5;
+      this->rhocrit[l] = 2.35*100.2019;
+      this->Vcrit[l] = this->MW[l] / this->rhocrit[l];
+      this->Zcrit[l] =
+          (Pcrit[l] * Vcrit[l]) / (this->gas_constant_universal * Tcrit[l]);
+      this->omega[l] = 0.349;
     } else {
       std::cout << " WARNING -> Unknown species :[" << this->species[l]
            << "]. No critical properties found." << std::endl;
@@ -263,7 +272,6 @@ void PengRobinson::SetRealFluidConstants() {
     if (this->omega[k] <= 0.49)
       this->cst_c[k] = 0.37464 + 1.54226 * this->omega[k] - 0.26992 * std::pow(this->omega[k], 2);
     else
-//      this->cst_c[k] = 0.37464 + 1.54226 * this->omega[k] - 0.26992 * std::pow(this->omega[k], 2);
       this->cst_c[k] = 0.379642 + 1.485030*this->omega[k] - 0.164423*std::pow(this->omega[k], 2) + 0.016666*std::pow(this->omega[k], 3);
   }
 }
@@ -703,8 +711,10 @@ void PengRobinson::SyncPZFromTemperatureDensity() {
     }
   }
 
-  if (this->P < 0 || std::isnan(this->P))
+  if (this->P < 0 || std::isnan(this->P)) {
+    std::cout << "Invalid pressure" << std::endl;
     throw -1;
+  }
 
 }
 
@@ -795,7 +805,7 @@ void PengRobinson::ComputeMixtureCrit(double &Tcmix, double &Pcmix, double &wcmi
 
 //----------------------------------------------------------------------------
 
-void PengRobinson::getCP(double *X) {
+void PengRobinson::getCP(double *X, double* kout, double* lout, double kappaGuess_in, double lambdaGuess_in) {
   this->SetMolarFractionFromX(X);
 
   this->SetMolecularWeightMixtureFromX();
@@ -813,19 +823,29 @@ void PengRobinson::getCP(double *X) {
   }
 
   double kappaGuess = 3.5;
+  if (kappaGuess_in > 0)
+    kappaGuess = kappaGuess_in;
   double firstlGuess = std::sqrt(1.3*Tcmix);
+  if (lambdaGuess_in > 0)
+    firstlGuess = lambdaGuess_in;
 
-
-  double kout, lout;
-  this->solveCP(kappaGuess, firstlGuess, kout, lout);
+  double k, l;
+  this->solveCP(kappaGuess, firstlGuess, k, l);
 
   double D,C;
-  this->objectiveFun(lout, kout, D, C);
+  this->objectiveFun(l, k, D, C);
 
-  double v = kout * this->Bm;
+  double v = k * this->Bm;
   double rho = this->MW_M / v;
 
-  this->SetMixture_TRX(lout*lout, rho, X);
+  this->SetMixture_TRX(l*l, rho, X);
+
+  if (kout!=nullptr)
+    *kout = k;
+
+  if (lout!=nullptr)
+    *lout = l;
+
 }
 
 
@@ -850,6 +870,8 @@ void PengRobinson::solveCP(double kappaGuess, double firstlGuess, double& kout, 
 
   kout = k;
   lout = this->lambdaFromKappa(kout, l);
+
+
 }
 
 

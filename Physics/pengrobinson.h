@@ -113,8 +113,8 @@ class PengRobinson {
 
   // For CP
 public:
-
-  void getCP(double* X);
+  // This will create a consistent thermo state at CP
+  void getCP(double* X, double* kout=nullptr, double* lout=nullptr, double kappaGuess=-1., double lambdaGuess=-1.);
 private:
   double eps = 1e-10;
   void solveCP(double kappaGuess, double firstlGuess, double& kout, double& lout);
